@@ -1,63 +1,66 @@
 import {handleActions} from "redux-actions";
-import {UI_NOTIFICATIONS_BOARD_TOGGLE_EXPAND_UPWORK_FEED_ROW, UPWORK_FEED_FAILURE, UPWORK_FEED_REQUEST, UPWORK_FEED_SUCCESS} from "../actions/index";
-import {xorWith} from "lodash/array";
-import {isEqual} from "lodash/lang";
+import actions from "../actions";
+import {concat, differenceBy, findIndex, take} from "lodash/array";
+
+import config from "../config";
 
 const feedsReducer = handleActions({
-    [UPWORK_FEED_REQUEST]: (state, action) => {
-        let progressing = Object.assign({}, state.progressing, {UPWORK_FEED_REQUEST});
+    [actions.api.upworkFeedRequest]: (state, action) => {
+        let progressing = [...state.progressing];
+        progressing.push(actions.api.upworkFeedRequest.type);
+
         return Object.assign({}, state, {progressing});
     },
-    [UPWORK_FEED_SUCCESS]: (state, action) => {
-        let progressing = Object.assign({}, state.progressing);
-        delete progressing[UPWORK_FEED_REQUEST];
+    [actions.api.upworkFeedSuccess]: (state, action) => {
+        let progressing = state.progressing.filter(item => item !== actions.api.upworkFeedRequest.type);
 
-        let current = [...action.payload];
-        let previous = [...state.upwork.previous];
+        let currentTrail = state.upwork.items;
+        let newItemsBatchArray = action.payload;
+        let maxTrailSize = config.feeds.maxTrailSize;
 
-        let diff = xorWith(current, previous, (curr, prev) => {
-            let eq = isEqual(curr, prev);
-            if (eq) {
-                curr.isNew = false;
-                prev.isNew = false;
-            } else {
-                curr.isNew = true;
-                prev.isNew = false;
-            }
-            return eq;
-        });
+        let newItems = differenceBy(newItemsBatchArray, currentTrail, "title");
+        newItems.forEach(item => item.isNew = true);
 
+        let newTrail = take(concat(newItems, currentTrail), maxTrailSize);
+
+        let shouldBeepForLastBatch = newItems.length > 0;
         return Object.assign({}, state, {
             progressing,
-            upwork: {diff, current, previous}
+            shouldBeepForLastBatch,
+            upwork: {
+                items: newTrail
+            }
         });
     },
 
-    [UPWORK_FEED_FAILURE]: (state, action) => {
-        let progressing = Object.assign({}, state.progressing);
-        delete progressing[UPWORK_FEED_REQUEST];
+    [actions.api.upworkFeedFailure]: (state, action) => {
+        let progressing = state.progressing.filter(item => item !== actions.api.upworkFeedRequest.type);
 
         return Object.assign({}, state, {progressing});
     },
 
-    [UI_NOTIFICATIONS_BOARD_TOGGLE_EXPAND_UPWORK_FEED_ROW]: (state, action) => {
-        let expandAtIndex = action.payload;
-        let currentFromState = state.upwork.current;
-        let expanded = Object.assign({}, currentFromState[expandAtIndex], {expanded: !currentFromState[expandAtIndex].expanded});
+    [actions.notificationsBoard.uiToggleExpandUpworkFeedRow]: (state, action) => {
+        let toggledItemTitle = action.payload;
+        let currentTrail = state.upwork.items;
 
-        let current = [...currentFromState];
-        current[expandAtIndex] = expanded;
+        let toggledItemIndex = findIndex(currentTrail, ['title', toggledItemTitle]);
+        let toggledItem = currentTrail[toggledItemIndex];
 
-        let upwork = Object.assign({}, state.upwork, {current});
+        let newItem = Object.assign({}, toggledItem, {expanded: !toggledItem.expanded, isNew: false});
+        let newTrail = concat(currentTrail);
+        newTrail[toggledItemIndex] = newItem;
 
-        return Object.assign({}, state, {upwork});
+
+        return Object.assign({}, state, {upwork: {items: newTrail}});
     },
+    [actions.notificationsBoard.uiBeepForLastBatch]: (state, action) => {
+        return Object.assign({}, state, {shouldBeepForLastBatch: false});
+    }
 }, {
-    progressing: {},
+    progressing: [],
+    shouldBeepForLastBatch: false,
     upwork: {
-        diff: [],
-        current: [],
-        previous: []
+        items: []
     }
 });
 

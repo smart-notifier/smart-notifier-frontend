@@ -1,5 +1,4 @@
 import fetch from "isomorphic-fetch";
-import {createAction} from "redux-actions";
 import config from "../config";
 
 const makeApiCall = (path, body, method = 'GET') => {
@@ -31,7 +30,11 @@ export const DELETE_METHOD = "DELETE";
 
 export default ({dispatch, getState}) => next => action => {
 
-    const apiCallDetails = action[CALL_API_KEY];
+    if (!action.payload) {
+        return next(action);
+    }
+
+    const apiCallDetails = action.payload[CALL_API_KEY];
 
     if (typeof apiCallDetails === "undefined") {
         return next(action);
@@ -47,12 +50,12 @@ export default ({dispatch, getState}) => next => action => {
         throw new Error('Expected an array of three action types.')
     }
 
-    if (!types.every(type => typeof type === 'string')) {
-        throw new Error('Expected action types to be strings.')
+    if (!types.every(type => typeof type === 'function')) {
+        throw new Error('Expected action types to be functions.')
     }
 
-    const transformedAction = (type, data) => {
-        return createAction(type)(data);
+    const transformedAction = (actionCreator, data) => {
+        return actionCreator(data);
     };
 
     const [requestType, successType, failureType] = types;
@@ -60,14 +63,14 @@ export default ({dispatch, getState}) => next => action => {
 
     return makeApiCall(`${config.apiBase}${path}`, body, method)
         .then(response => {
-            next(transformedAction(successType, response));
-            if (actionCreatorOnSuccess)
-                dispatch(actionCreatorOnSuccess(response));
-        },
-        error => {
-            next(transformedAction(failureType, error));
-            if (actionCreatorOnError)
-                dispatch(actionCreatorOnError(error));
-        }
-    );
+                next(transformedAction(successType, response));
+                if (actionCreatorOnSuccess)
+                    dispatch(actionCreatorOnSuccess(response));
+            },
+            error => {
+                next(transformedAction(failureType, error));
+                if (actionCreatorOnError)
+                    dispatch(actionCreatorOnError(error));
+            }
+        );
 }

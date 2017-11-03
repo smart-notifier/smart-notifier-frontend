@@ -8,8 +8,13 @@ const paths = {
 
 const config = {
     apiBase: "http://127.0.0.1:8000/",
+    defaultTitle: "Smart Notifier",
     intervals: {
-        notificationsRefresher: 30000
+        notificationsRefresher: 5000,
+        newItemsTitleBlinker: 2000
+    },
+    feeds: {
+        maxTrailSize: 100 //how many items to keep in memory
     }
 };
 

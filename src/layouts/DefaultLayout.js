@@ -19,7 +19,6 @@ class DefaultLayout extends Component {
                                         <div className="brand-text brand-big d-none d-lg-block"><span>Smart </span><strong>Notifier</strong></div>
                                         <div className="brand-text d-block d-lg-none"><strong>SN</strong></div>
                                     </Link>
-                                    <button className="btn-link menu-btn active"><span/><span/><span/></button>
                                 </div>
                             </div>
                         </div>

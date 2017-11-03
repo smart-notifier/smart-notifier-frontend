@@ -1,32 +1,49 @@
 import React, {Component} from 'react';
 import {connect} from "react-redux";
 
-import {refreshNotifications} from "../../actions"
+import actions from "../../actions"
 import config from "../../config";
-import {uiNotificationsBoardToggleExpandUpworkFeedRow} from "../../actions/index";
+import newItemNotificationMp3 from "../../assets/mp3/new-item-notification.mp3";
+import DocumentTitle from "../../components/DocumentTitle";
+
+const newItemNotification = new Audio(newItemNotificationMp3);
 
 class NotificationsBoard extends Component {
+    static beepIfNewBatch(props) {
+        if (props.shouldBeepForLastBatch) {
+            newItemNotification.play();
+            props.beepForLastBatch();
+        }
+    }
+
     constructor(props) {
         super(props);
 
         this.state = {
-            notificationsRefresherIntervalId: -1,
+            notificationsRefresherIntervalId: setInterval(this.props.refreshNotifications, config.intervals.notificationsRefresher),
+            newItemsTitleBlinkerIntervalId: setInterval(this.newItemsTitleBlinker, config.intervals.newItemsTitleBlinker),
+            titlePrefix: "",
         };
     }
 
     componentDidMount() {
         this.props.refreshNotifications();
-        let notificationsRefresherIntervalId = setInterval(this.props.refreshNotifications, config.intervals.notificationsRefresher);
-        this.setState({notificationsRefresherIntervalId});
     }
 
     componentWillUnmount() {
         clearInterval(this.state.notificationsRefresherIntervalId);
+        clearInterval(this.state.newItemsTitleBlinkerIntervalId);
+    }
+
+    componentWillReceiveProps(nextProps) {
+        NotificationsBoard.beepIfNewBatch(nextProps);
     }
 
     render = () => {
         const props = this.props;
+
         return <div className="row">
+            <DocumentTitle title={`${this.state.titlePrefix}${config.defaultTitle}`}/>
             <div className="col">
                 <header className="page-header">
                     <div className="container-fluid">
@@ -38,25 +55,24 @@ class NotificationsBoard extends Component {
                         <div className="row has-shadow">
                             <div className="col">
                                 <div className="d-flex align-items-center">
-                                    <table className="mt-3 table table-dark table-hover table-responsive ">
+                                    <table className="mt-3 table table-dark table-hover">
                                         <thead className="thead-dark">
                                         <tr>
                                             <th>Title</th>
                                             <th>From</th>
-                                            <th>Link</th>
                                         </tr>
                                         </thead>
                                         <tbody>
-                                        {props && props.upworkCurrent.map((feedItem, index) => {
-                                            let row = [<tr key={feedItem.link} className={feedItem.isNew ? "bg-primary" : ""} onClick={this.onUpworkRowClick(index)}>
+                                        {props && props.upworkTrail.map((feedItem) => {
+                                            if (feedItem.isHidden) {
+                                                return null;
+                                            }
+                                            let row = [<tr key={feedItem.link} className={feedItem.isNew ? "bg-primary" : ""} onClick={this.onUpworkRowClick(feedItem.title)}>
                                                 <td>
                                                     {feedItem.title}
                                                 </td>
                                                 <td>
                                                     {(new Date(feedItem.publishedOn)).toLocaleString('bg-BG')}
-                                                </td>
-                                                <td rowSpan={feedItem.expanded ? 2 : 1}>
-                                                    <a href={feedItem.link} title={feedItem.title} target="_blank">go to upwork</a>
                                                 </td>
                                             </tr>];
 
@@ -79,26 +95,46 @@ class NotificationsBoard extends Component {
         </div>;
     };
 
-    onUpworkRowClick = index => {
-        return () => (this.props.toggleUpworkFeedRow(index));
-    }
+    onUpworkRowClick = title => {
+        return () => (this.props.toggleUpworkFeedRow(title));
+    };
+
+    newItemsTitleBlinker = () => {
+        let newItemsCnt = this.props.unseenItems;
+
+        if (newItemsCnt > 0) {
+            this.setState({titlePrefix: this.state.titlePrefix ? '' : `(${newItemsCnt}) `});
+        }
+    };
 }
 
 const mapStateToProps = (state, ownProps) => {
+    let unseenItems = 0;
+    let upworkTrail = state.feeds.upwork.items;
+
+    upworkTrail.forEach(item => {
+        if (item.isNew) {
+            unseenItems++;
+        }
+    });
+
     return {
-        upworkCurrent: state.feeds.upwork.current,
-        upworkPrevious: state.feeds.upwork.previous,
-        upworkDiff: state.feeds.upwork.diff,
+        unseenItems,
+        upworkTrail,
+        shouldBeepForLastBatch: state.feeds.shouldBeepForLastBatch,
     };
 };
 
 const mapDispatchToProps = (dispatch) => {
     return {
         refreshNotifications() {
-            dispatch(refreshNotifications());
+            dispatch(actions.api.fetchUpworkFeed());
         },
-        toggleUpworkFeedRow(index) {
-            dispatch(uiNotificationsBoardToggleExpandUpworkFeedRow(index));
+        toggleUpworkFeedRow(title) {
+            dispatch(actions.notificationsBoard.uiToggleExpandUpworkFeedRow(title));
+        },
+        beepForLastBatch() {
+            dispatch(actions.notificationsBoard.uiBeepForLastBatch());
         }
     }
 };
