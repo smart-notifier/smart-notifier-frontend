@@ -55,24 +55,30 @@ class NotificationsBoard extends Component {
                         <div className="row has-shadow">
                             <div className="col">
                                 <div className="d-flex align-items-center">
-                                    <table className="mt-3 table table-dark table-hover">
-                                        <thead className="thead-dark">
+                                    <table className="mt-3 table table-hover">
+                                        <thead>
                                         <tr>
                                             <th>Title</th>
                                             <th>From</th>
+                                            <th>Actions</th>
                                         </tr>
                                         </thead>
                                         <tbody>
                                         {props && props.upworkTrail.map((feedItem) => {
-                                            if (feedItem.isHidden) {
+                                            if (feedItem.isVisible === false) {
                                                 return null;
                                             }
-                                            let row = [<tr key={feedItem.link} className={feedItem.isNew ? "bg-primary" : ""} onClick={this.onUpworkRowClick(feedItem.title)}>
+                                            let row = [<tr key={feedItem.link} className={feedItem.isNew ? "table-info" : ""} onClick={this.onUpworkRowClick(feedItem.title)}>
                                                 <td>
                                                     {feedItem.title}
                                                 </td>
                                                 <td>
                                                     {(new Date(feedItem.publishedOn)).toLocaleString('bg-BG')}
+                                                </td>
+                                                <td>
+                                                    <button className="btn btn-sm btn-outline-warning" onClick={this.onUpworkHideButtonClick(feedItem.title)}>
+                                                        <i className="fa fa-lg fa-times"/>
+                                                    </button>
                                                 </td>
                                             </tr>];
 
@@ -97,6 +103,13 @@ class NotificationsBoard extends Component {
 
     onUpworkRowClick = title => {
         return () => (this.props.toggleUpworkFeedRow(title));
+    };
+
+    onUpworkHideButtonClick = title => {
+        return (e) => {
+            e.stopPropagation();
+            this.props.toggleVisibilityItemFromFeedTable(title)
+        };
     };
 
     newItemsTitleBlinker = () => {
@@ -132,6 +145,9 @@ const mapDispatchToProps = (dispatch) => {
         },
         toggleUpworkFeedRow(title) {
             dispatch(actions.notificationsBoard.uiToggleExpandUpworkFeedRow(title));
+        },
+        toggleVisibilityItemFromFeedTable(title) {
+            dispatch(actions.notificationsBoard.uiToggleVisibilityItemFromFeedTable(title));
         },
         beepForLastBatch() {
             dispatch(actions.notificationsBoard.uiBeepForLastBatch());

@@ -19,7 +19,11 @@ const feedsReducer = handleActions({
         let maxTrailSize = config.feeds.maxTrailSize;
 
         let newItems = differenceBy(newItemsBatchArray, currentTrail, "title");
-        newItems.forEach(item => item.isNew = true);
+        newItems.forEach(item => {
+            item.isNew = true;
+            item.expanded = false;
+            item.isVisible = true;
+        });
 
         let newTrail = take(concat(newItems, currentTrail), maxTrailSize);
 
@@ -47,7 +51,7 @@ const feedsReducer = handleActions({
         let toggledItem = currentTrail[toggledItemIndex];
 
         let newItem = Object.assign({}, toggledItem, {expanded: !toggledItem.expanded, isNew: false});
-        let newTrail = concat(currentTrail);
+        let newTrail = [...currentTrail];
         newTrail[toggledItemIndex] = newItem;
 
 
@@ -55,6 +59,20 @@ const feedsReducer = handleActions({
     },
     [actions.notificationsBoard.uiBeepForLastBatch]: (state, action) => {
         return Object.assign({}, state, {shouldBeepForLastBatch: false});
+    },
+    [actions.notificationsBoard.uiToggleVisibilityItemFromFeedTable]: (state, action) => {
+        let toggledItemTitle = action.payload;
+        let currentTrail = state.upwork.items;
+
+        let toggledItemIndex = findIndex(currentTrail, ['title', toggledItemTitle]);
+        let toggledItem = currentTrail[toggledItemIndex];
+
+        let newItem = Object.assign({}, toggledItem, {isVisible: !toggledItem.isVisible, isNew: false});
+        let newTrail = [...currentTrail];
+        newTrail[toggledItemIndex] = newItem;
+
+
+        return Object.assign({}, state, {upwork: {items: newTrail}});
     }
 }, {
     progressing: [],

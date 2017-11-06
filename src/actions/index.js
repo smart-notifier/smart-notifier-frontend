@@ -30,7 +30,7 @@ const actionCreators = createActions({
         FETCH_UPWORK_FEED: createApiAction(simpleApiActions.api.upworkFeedRequest, simpleApiActions.api.upworkFeedSuccess, simpleApiActions.api.upworkFeedFailure, config.paths.feeds.upwork)
     },
     NOTIFICATIONS_BOARD: {
-        HIDE_ITEM_FROM_FEED_TABLE: undefined,
+        UI_TOGGLE_VISIBILITY_ITEM_FROM_FEED_TABLE: undefined,
         UI_TOGGLE_EXPAND_UPWORK_FEED_ROW: undefined,
         UI_BEEP_FOR_LAST_BATCH: undefined,
     }
