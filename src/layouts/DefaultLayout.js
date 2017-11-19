@@ -15,7 +15,7 @@ class DefaultLayout extends Component {
                         <div className="container-fluid">
                             <div className="navbar-holder d-flex align-items-center justify-content-between">
                                 <div className="navbar-header">
-                                    <Link to={config.paths.root} className="navbar-brand">
+                                    <Link to={config.routes.root} className="navbar-brand">
                                         <div className="brand-text brand-big d-none d-lg-block"><span>Smart </span><strong>Notifier</strong></div>
                                         <div className="brand-text d-block d-lg-none"><strong>SN</strong></div>
                                     </Link>
@@ -30,17 +30,22 @@ class DefaultLayout extends Component {
                     <span className="heading">Main</span>
                     <ul className="list-unstyled">
                         <li className="active">
-                            <Link to={config.paths.root}>
+                            <Link to={config.routes.root}>
                                 <i className="icon-home"/>Home
                             </Link>
                         </li>
                         <li>
-                            <Link to={config.paths.notificationsBoard}>
+                            <Link to={config.routes.notificationsBoard}>
                                 <i className="icon-grid"/>Notifications Board
                             </Link>
                         </li>
                         <li>
-                            <Link to={config.paths.notificationsBoard}>
+                            <Link to={config.routes.invoices.list}>
+                                <i className="icon-grid"/>Invoices
+                            </Link>
+                        </li>
+                        <li>
+                            <Link to={config.routes.notificationsBoard}>
                                 <i className="icon-grid"/>Settings
                             </Link>
                         </li>

@@ -1,10 +1,15 @@
 import React, {Component} from 'react';
 import {connect} from "react-redux";
+import classNames from "classnames";
 
 import actions from "../../actions"
 import config from "../../config";
 import newItemNotificationMp3 from "../../assets/mp3/new-item-notification.mp3";
 import DocumentTitle from "../../components/DocumentTitle";
+import {Box} from "../../components/Box";
+
+import upworkLogo from "../../assets/img/upwork_logo.png";
+import guruLogo from "../../assets/img/guru_logo.png";
 
 const newItemNotification = new Audio(newItemNotificationMp3);
 
@@ -42,73 +47,95 @@ class NotificationsBoard extends Component {
     render = () => {
         const props = this.props;
 
-        return <div className="row">
-            <DocumentTitle title={`${this.state.titlePrefix}${config.defaultTitle}`}/>
-            <div className="col">
-                <header className="page-header">
-                    <div className="container-fluid">
-                        <h2 className="no-margin-bottom">All Live Notifications</h2>
-                    </div>
-                </header>
-                <section>
-                    <div className="container-fluid">
-                        <div className="row has-shadow">
-                            <div className="col">
-                                <div className="d-flex align-items-center">
-                                    <table className="mt-3 table table-hover">
-                                        <thead>
-                                        <tr>
-                                            <th>Title</th>
-                                            <th>From</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                        </thead>
-                                        <tbody>
-                                        {props && props.upworkTrail.map((feedItem) => {
-                                            if (feedItem.isVisible === false) {
-                                                return null;
-                                            }
-                                            let row = [<tr key={feedItem.link} className={feedItem.isNew ? "table-info" : ""} onClick={this.onUpworkRowClick(feedItem.title)}>
-                                                <td>
-                                                    {feedItem.title}
-                                                </td>
-                                                <td>
-                                                    {(new Date(feedItem.publishedOn)).toLocaleString('bg-BG')}
-                                                </td>
-                                                <td>
-                                                    <button className="btn btn-sm btn-outline-warning" onClick={this.onUpworkHideButtonClick(feedItem.title)}>
-                                                        <i className="fa fa-lg fa-times"/>
-                                                    </button>
-                                                </td>
-                                            </tr>];
+        return <div className="container-fluid">
+            <DocumentTitle title={`${this.state.titlePrefix}${config.titles.default}`}/>
+            <div className="row">
+                <div className="col-12">
+                    <Box title="All Live Notifications">
+                        <button className={classNames({
+                            "btn": true,
+                            "btn-success": props.shouldShowHiddenFeedRows,
+                            "btn-secondary": !props.shouldShowHiddenFeedRows,
+                            "active": props.shouldShowHiddenFeedRows
+                        })} onClick={props.toggleHiddenFeedRows}>
+                            {props.shouldShowHiddenFeedRows ? "Hide hidden items" : "Show hidden items"}
+                        </button>
+                        <table className="mt-3 table">
+                            <thead>
+                            <tr>
+                                <th>Platform</th>
+                                <th>Title</th>
+                                <th>From</th>
+                                <th>Actions</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {props && props.trail.map((feedItem) => {
+                                if (!props.shouldShowHiddenFeedRows && feedItem.isVisible === false) {
+                                    return null;
+                                }
 
-                                            if (feedItem.expanded) {
-                                                row.push(<tr className="bg-gray text-dark" key={feedItem.link + "_expand"}>
-                                                    <td colSpan="3" dangerouslySetInnerHTML={{__html: feedItem.description}}/>
-                                                </tr>)
-                                            }
+                                let logo;
+                                switch (feedItem.platform) {
+                                    case config.platforms.upwork:
+                                        logo = upworkLogo;
+                                        break;
+                                    case config.platforms.guruCom:
+                                        logo = guruLogo;
+                                        break;
+                                    default:
+                                        throw new Error("Cannot have a feed item without a platform.");
+                                }
 
-                                            return row;
-                                        })}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
+                                let row = [<tr key={feedItem.link} className={classNames({"table-info": feedItem.isNew})}
+                                               onClick={this.onFeedRowClick(feedItem.guid)}>
+                                    <td className={classNames({"border-bottom-0": feedItem.hasDetails})}>
+                                        <img className="img-fluid" src={logo} style={{maxWidth: "50px"}} alt={feedItem.platform}/>
+                                    </td>
+                                    <td className={classNames({"border-bottom-0": feedItem.hasDetails})}>
+                                        {feedItem.title}
+                                    </td>
+                                    <td className={classNames({"border-bottom-0": feedItem.hasDetails})}>
+                                        {(new Date(feedItem.pubDate)).toLocaleString('bg-BG')}
+                                    </td>
+                                    <td className={classNames({"border-bottom-0": feedItem.hasDetails})}>
+                                        <button className={classNames({
+                                            "btn btn-sm": true,
+                                            "btn-outline-warning": feedItem.isVisible,
+                                            "btn-outline-success": !feedItem.isVisible
+                                        })} onClick={this.onFeedRowHideButtonClick(feedItem.guid)}>
+                                            {feedItem.isVisible ? <i className="fa fa-lg fa-times"/> : <i className="fa fa-lg fa-eye"/>}
+                                        </button>
+                                    </td>
+                                </tr>];
+
+                                if (feedItem.hasDetails) {
+                                    row.push(<tr className="text-dark" key={feedItem.link + "_expand"}>
+                                        <td className="border-0" colSpan="3" dangerouslySetInnerHTML={{__html: feedItem.description}}/>
+                                        <td className="border-0">
+                                            <a className="btn btn-success" href={feedItem.link} target="_blank"><i className="fa fa-lg fa-external-link"/></a>
+                                        </td>
+                                    </tr>)
+                                }
+
+                                return row;
+                            })}
+                            </tbody>
+                        </table>
+                    </Box>
+                </div>
             </div>
         </div>;
     };
 
-    onUpworkRowClick = title => {
-        return () => (this.props.toggleUpworkFeedRow(title));
+    onFeedRowClick = guid => {
+        return () => (this.props.toggleFeedRowDetails(guid));
     };
 
-    onUpworkHideButtonClick = title => {
+    onFeedRowHideButtonClick = guid => {
         return (e) => {
             e.stopPropagation();
-            this.props.toggleVisibilityItemFromFeedTable(title)
+            this.props.toggleFeedRowVisibility(guid)
         };
     };
 
@@ -123,9 +150,9 @@ class NotificationsBoard extends Component {
 
 const mapStateToProps = (state, ownProps) => {
     let unseenItems = 0;
-    let upworkTrail = state.feeds.upwork.items;
+    let trail = state.feeds.items;
 
-    upworkTrail.forEach(item => {
+    trail.forEach(item => {
         if (item.isNew) {
             unseenItems++;
         }
@@ -133,24 +160,28 @@ const mapStateToProps = (state, ownProps) => {
 
     return {
         unseenItems,
-        upworkTrail,
+        trail,
         shouldBeepForLastBatch: state.feeds.shouldBeepForLastBatch,
+        shouldShowHiddenFeedRows: state.feeds.shouldShowHiddenFeedRows
     };
 };
 
 const mapDispatchToProps = (dispatch) => {
     return {
         refreshNotifications() {
-            dispatch(actions.api.fetchUpworkFeed());
+            dispatch(actions.api.fetchAllFeeds());
         },
-        toggleUpworkFeedRow(title) {
-            dispatch(actions.notificationsBoard.uiToggleExpandUpworkFeedRow(title));
+        toggleFeedRowDetails(guid) {
+            dispatch(actions.notificationsBoard.uiToggleFeedRowDetails(guid));
         },
-        toggleVisibilityItemFromFeedTable(title) {
-            dispatch(actions.notificationsBoard.uiToggleVisibilityItemFromFeedTable(title));
+        toggleFeedRowVisibility(guid) {
+            dispatch(actions.notificationsBoard.uiToggleFeedRowVisibility(guid));
         },
         beepForLastBatch() {
             dispatch(actions.notificationsBoard.uiBeepForLastBatch());
+        },
+        toggleHiddenFeedRows() {
+            dispatch(actions.notificationsBoard.uiToggleHiddenFeedRows());
         }
     }
 };

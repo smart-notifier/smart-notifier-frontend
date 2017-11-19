@@ -9,7 +9,8 @@ import thunk from "redux-thunk";
 import localForage from "localforage";
 
 import config from "./config";
-import ApiMiddleware from "./middleware/api";
+import apiMiddleware from "./middleware/api";
+import thunkFsaMiddleware from "./middleware/thunk-fsa";
 import reducers from "./reducers";
 import DefaultLayout from "./layouts/DefaultLayout";
 import NotificationsBoard from "./pages/boards/NotificationsBoard";
@@ -17,6 +18,8 @@ import NotificationsBoard from "./pages/boards/NotificationsBoard";
 import './assets/css/style.default.css';
 import './assets/css/style.css';
 import {isNil} from "lodash/lang";
+import InvoiceList from "./pages/invoices/InvoiceList";
+import InvoiceCreateUpdate from "./pages/invoices/InvoiceCreateUpdate";
 
 localForage.config({
     name: "Smart Notifier App",
@@ -38,7 +41,7 @@ localForage.getItem("state", (err, result) => {//cuz only real PROs use async wh
 
 
     const history = createHistory();
-    const middlewares = [thunk, ApiMiddleware, routerMiddleware(history)];
+    const middlewares = [thunkFsaMiddleware, thunk, apiMiddleware, routerMiddleware(history)];
 
     let store = createStore(
         reducers,
@@ -50,9 +53,7 @@ localForage.getItem("state", (err, result) => {//cuz only real PROs use async wh
         const state = {
             feeds: {
                 shouldBeepForLastBatch: store.getState().feeds.shouldBeepForLastBatch,
-                upwork: {
-                    items: store.getState().feeds.upwork.items
-                }
+                items: store.getState().feeds.items
             }
         };
 
@@ -66,8 +67,11 @@ localForage.getItem("state", (err, result) => {//cuz only real PROs use async wh
         <ConnectedRouter history={history}>
             <DefaultLayout>
                 <Switch>
-                    <Redirect exact from={config.paths.root} to={config.paths.notificationsBoard}/>
-                    <Route path={config.paths.notificationsBoard} component={NotificationsBoard}/>
+                    <Redirect exact from={config.routes.root} to={config.routes.notificationsBoard}/>
+                    <Route path={config.routes.notificationsBoard} component={NotificationsBoard}/>
+                    <Route path={config.routes.invoices.list} component={InvoiceList}/>
+                    <Route path={config.routes.invoices.edit} component={InvoiceCreateUpdate}/>
+                    <Route path={config.routes.invoices.create} component={InvoiceCreateUpdate}/>
                 </Switch>
             </DefaultLayout>
         </ConnectedRouter>

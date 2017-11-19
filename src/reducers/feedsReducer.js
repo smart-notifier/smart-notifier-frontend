@@ -1,85 +1,103 @@
-import {handleActions} from "redux-actions";
+import {combineActions, handleActions} from "redux-actions";
 import actions from "../actions";
-import {concat, differenceBy, findIndex, take} from "lodash/array";
+import {concat, differenceBy, findIndex, reverse, take} from "lodash/array";
 
 import config from "../config";
+import {sortBy} from "lodash/collection";
+
+const mergeItemsBatchIntoTrail = (state, action, platform) => {
+    let newState = removeFromProgressing(state, platform);
+
+    let currentTrail = state.items;
+    let newItemsBatchArray = action.payload;
+    let maxTrailSize = config.feeds.maxTrailSize;
+
+    let newItems = differenceBy(newItemsBatchArray, currentTrail, "guid");
+    newItems.forEach(item => {
+        item.platform = platform;
+        item.isNew = true;
+        item.hasDetails = false;
+        item.isVisible = true;
+    });
+
+    let newTrail = take(
+        reverse(
+            sortBy(
+                concat(newItems, currentTrail), item => (new Date(item.pubDate))
+            )
+        ), maxTrailSize);
+
+    let shouldBeepForLastBatch = newItems.length > 0;
+    return Object.assign(newState, {
+        shouldBeepForLastBatch,
+        items: newTrail
+    });
+};
+
+const addToProgressing = (state, req) => {
+    let progressing = [...state.progressing];
+    progressing.push(req);
+    return Object.assign({}, state, {progressing});
+};
+
+const removeFromProgressing = (state, req) => {
+    let progressing = state.progressing.filter(item => item !== req);
+    return Object.assign({}, state, {progressing});
+};
+
+const toggleFeedItemProp = (state, action, propName) => {
+    let toggledItemGuid = action.payload;
+    let currentTrail = state.items;
+
+    let toggledItemIndex = findIndex(currentTrail, ['guid', toggledItemGuid]);
+    let toggledItem = currentTrail[toggledItemIndex];
+
+    let newItem = {...toggledItem};
+    newItem[propName] = !toggledItem[propName];
+    newItem.isNew = false;
+
+    let newTrail = [...currentTrail];
+    newTrail[toggledItemIndex] = newItem;
+
+    return Object.assign({}, state, {items: newTrail});
+};
 
 const feedsReducer = handleActions({
-    [actions.api.upworkFeedRequest]: (state, action) => {
-        let progressing = [...state.progressing];
-        progressing.push(actions.api.upworkFeedRequest.type);
-
-        return Object.assign({}, state, {progressing});
+    [combineActions(
+        actions.api.upworkFeedRequest,
+        actions.api.guruComFeedRequest
+    )]: (state, action) => {
+        return addToProgressing(state, action.type);
+    },
+    [combineActions(
+        actions.api.upworkFeedFailure,
+        actions.api.guruComFeedFailure
+    )]: (state, action) => {
+        return removeFromProgressing(state, action.type.replace("FAILURE", "REQUEST"));
     },
     [actions.api.upworkFeedSuccess]: (state, action) => {
-        let progressing = state.progressing.filter(item => item !== actions.api.upworkFeedRequest.type);
-
-        let currentTrail = state.upwork.items;
-        let newItemsBatchArray = action.payload;
-        let maxTrailSize = config.feeds.maxTrailSize;
-
-        let newItems = differenceBy(newItemsBatchArray, currentTrail, "title");
-        newItems.forEach(item => {
-            item.isNew = true;
-            item.expanded = false;
-            item.isVisible = true;
-        });
-
-        let newTrail = take(concat(newItems, currentTrail), maxTrailSize);
-
-        let shouldBeepForLastBatch = newItems.length > 0;
-        return Object.assign({}, state, {
-            progressing,
-            shouldBeepForLastBatch,
-            upwork: {
-                items: newTrail
-            }
-        });
+        return mergeItemsBatchIntoTrail(state, action, config.platforms.upwork);
     },
-
-    [actions.api.upworkFeedFailure]: (state, action) => {
-        let progressing = state.progressing.filter(item => item !== actions.api.upworkFeedRequest.type);
-
-        return Object.assign({}, state, {progressing});
+    [actions.api.guruComFeedSuccess]: (state, action) => {
+        return mergeItemsBatchIntoTrail(state, action, config.platforms.guruCom);
     },
-
-    [actions.notificationsBoard.uiToggleExpandUpworkFeedRow]: (state, action) => {
-        let toggledItemTitle = action.payload;
-        let currentTrail = state.upwork.items;
-
-        let toggledItemIndex = findIndex(currentTrail, ['title', toggledItemTitle]);
-        let toggledItem = currentTrail[toggledItemIndex];
-
-        let newItem = Object.assign({}, toggledItem, {expanded: !toggledItem.expanded, isNew: false});
-        let newTrail = [...currentTrail];
-        newTrail[toggledItemIndex] = newItem;
-
-
-        return Object.assign({}, state, {upwork: {items: newTrail}});
+    [actions.notificationsBoard.uiToggleFeedRowDetails]: (state, action) => {
+        return toggleFeedItemProp(state, action, "hasDetails");
     },
     [actions.notificationsBoard.uiBeepForLastBatch]: (state, action) => {
         return Object.assign({}, state, {shouldBeepForLastBatch: false});
     },
-    [actions.notificationsBoard.uiToggleVisibilityItemFromFeedTable]: (state, action) => {
-        let toggledItemTitle = action.payload;
-        let currentTrail = state.upwork.items;
-
-        let toggledItemIndex = findIndex(currentTrail, ['title', toggledItemTitle]);
-        let toggledItem = currentTrail[toggledItemIndex];
-
-        let newItem = Object.assign({}, toggledItem, {isVisible: !toggledItem.isVisible, isNew: false});
-        let newTrail = [...currentTrail];
-        newTrail[toggledItemIndex] = newItem;
-
-
-        return Object.assign({}, state, {upwork: {items: newTrail}});
+    [actions.notificationsBoard.uiToggleFeedRowVisibility]: (state, action) => {
+        return toggleFeedItemProp(state, action, "isVisible");
+    },
+    [actions.notificationsBoard.uiToggleHiddenFeedRows]: (state, action) => {
+        return Object.assign({}, state, {shouldShowHiddenFeedRows: !state.shouldShowHiddenFeedRows});
     }
 }, {
     progressing: [],
     shouldBeepForLastBatch: false,
-    upwork: {
-        items: []
-    }
+    shouldShowHiddenFeedRows: false,
+    items: []
 });
 
 export default feedsReducer;

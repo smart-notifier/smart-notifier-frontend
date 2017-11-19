@@ -1,6 +1,6 @@
 import {LOCATION_CHANGE} from "react-router-redux";
-import {CALL_API_KEY} from "./rss-service";
-import {REFETCH_DATA} from "../actions/index";
+import {CALL_API_KEY} from "./api";
+import actions from "../actions";
 
 let actionsStack = new Set();
 
@@ -14,7 +14,7 @@ export default ({dispatch, getState}) => next => action => {
         actionsStack.add(action);
     }
 
-    if (action.type === REFETCH_DATA) {
+    if (action.type === actions.basic.refetchData.type) {
         actionsStack.forEach(fetchAction => dispatch(fetchAction));
     }
 
