@@ -1,0 +1,10 @@
+.global-alert {
+    position: fixed;
+    z-index: 100;
+    left: 3rem;
+    right: 3rem;
+}
+
+.btn {
+    white-space: normal;
+}
