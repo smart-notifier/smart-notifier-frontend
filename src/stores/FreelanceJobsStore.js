@@ -1,9 +1,19 @@
 import {action, computed, observable, runInAction} from "mobx";
 import * as axios from "axios";
-import {orderBy} from "lodash/collection";
+import {each, orderBy} from "lodash/collection";
 import {differenceBy} from "lodash/array";
 import {sizes} from "../config";
-import {appStore} from "./AppStore";
+import {isEmpty} from "lodash/lang";
+import {appStore} from "../stores/AppStore";
+import localforage from "localforage";
+
+const hydrateJob = (job, platform) => {
+	job.pubDate = new Date(job.pubDate);
+	job.platform = platform;
+	job.unread = true;
+	job.details = false;
+	job.visible = true;
+};
 
 class FreelanceJobsStore {
 	@observable
@@ -15,10 +25,21 @@ class FreelanceJobsStore {
 	@observable
 	fetchingJobs;
 
+	@observable
+	rssStrings;
+
 	constructor() {
 		this.showHidden = false;
 		this.jobs = [];
 	}
+
+	hydrate = async () => {
+		const rssStrings = await localforage.getItem("rssStrings");
+
+		runInAction(() => {
+			this.rssStrings = rssStrings;
+		});
+	};
 
 	@action
 	toggleShowHidden = () => {
@@ -50,26 +71,34 @@ class FreelanceJobsStore {
 		let newJobs;
 
 		try {
-			const [jobsUpwork, jobsGuru] = await Promise.all([
-				axios.get(`${process.env.REACT_APP_API_URL}feeds/rss/${process.env.REACT_APP_UPWORK_RSS_PARAMS}`),
-				axios.get(`${process.env.REACT_APP_API_URL}feeds/rss/${process.env.REACT_APP_GURU_RSS_PARAMS}`)
-			]);
-
-			if (jobsUpwork.status >= 300) {
-				throw new Error(jobsUpwork.statusText);
+			if (isEmpty(this.rssStrings)) {
+				throw new Error("You haven't entered RSS queries.");
 			}
 
-			if (jobsGuru.status >= 300) {
-				throw new Error(jobsGuru.statusText);
-			}
+			const rssRequests = new Map();
 
-			const newJobsUpwork = differenceBy(jobsUpwork.data, this.jobs, "guid");
-			const newJobsGuru = differenceBy(jobsGuru.data, this.jobs, "guid");
+			each(this.rssStrings, (val, key) => {
+				rssRequests.set(key, axios.get(`${process.env.REACT_APP_API_URL}feeds/rss/${key}/${val}`));
+			});
 
-			newJobsUpwork.forEach((job) => (this.hydrateJob(job, "upwork")));
-			newJobsGuru.forEach((job) => (this.hydrateJob(job, "guru")));
+			const resolvedRssRequests = await Promise.all(rssRequests.values());
+			const platforms = Array.from(rssRequests.keys());
 
-			newJobs = orderBy([...newJobsUpwork, ...newJobsGuru, ...this.jobs.slice(0, sizes.jobsList - newJobsGuru.length - newJobsUpwork.length)], ["pubDate", "guid"], ["desc"]);
+			let allNewJobsCount = 0;
+			const preparedAllNewJobs = [];
+			resolvedRssRequests.forEach((job, index) => {
+				if (job.status >= 300) {
+					throw new Error(job.statusText);
+				}
+
+				const filteredJobs = differenceBy(job.data, this.jobs, "guid");
+				filteredJobs.forEach((job) => (hydrateJob(job, platforms[index])));
+
+				preparedAllNewJobs.push(...filteredJobs);
+				allNewJobsCount += filteredJobs.length;
+			});
+
+			newJobs = orderBy([...preparedAllNewJobs, ...this.jobs.slice(0, sizes.jobsList - allNewJobsCount)], ["pubDate", "guid"], ["desc"]);
 		} catch (e) {
 			console.log(e);
 			appStore.addError(e.message);
@@ -83,13 +112,12 @@ class FreelanceJobsStore {
 		}
 	};
 
-	hydrateJob = (job, platform) => {
-		job.pubDate = new Date(job.pubDate);
-		job.platform = platform;
-		job.unread = true;
-		job.details = false;
-		job.visible = true;
-	};
+	@action
+	setRssStrings({upwork, guru}) {
+		const rssStrings = {upwork, guru};
+		this.rssStrings = rssStrings;
+		localforage.setItem("rssStrings", rssStrings);
+	}
 
 	@computed
 	get unreadJobsCount() {
@@ -97,4 +125,7 @@ class FreelanceJobsStore {
 	};
 }
 
-export const freelanceJobsStore = new FreelanceJobsStore();
+const freelanceJobsStore = new FreelanceJobsStore();
+freelanceJobsStore.hydrate();
+
+export {freelanceJobsStore}

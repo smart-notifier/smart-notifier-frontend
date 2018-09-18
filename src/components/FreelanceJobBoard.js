@@ -8,11 +8,12 @@ import RefreshIcon from "../icons/RefreshIcon";
 import {intervals} from "../config";
 
 import newItemNotificationMp3 from "../assets/mp3/new-item-notification.mp3";
-import {Badge, Button, Modal, ModalBody, ModalFooter, ModalHeader} from "reactstrap";
+import {Badge, Button, FormGroup, Input, Label, Modal, ModalBody, ModalFooter, ModalHeader} from "reactstrap";
 
 import "../assets/css/animations.css";
 import "../assets/css/icons.css";
 import FilterIcon from "../icons/FilterIcon";
+import {autorun} from "mobx";
 
 const newItemNotification = new Audio(newItemNotificationMp3);
 const defaultTitle = "Smart Notifier Job Board";
@@ -29,30 +30,62 @@ class FreelanceJobBoard extends Component {
 		//For now UI goes into local state, not yet needed to be in a store.
 		this.state = {
 			lastBeepGuid: null,
-			jobsRefresherId: setInterval(props.freelanceJobsStore.refreshJobs, intervals.jobsRefresher),
-			titleBlinkerId: setInterval(this.blinkTitle, intervals.titleBlinker),
 			rssStringModalOpen: false,
+			rssStrings: {
+				upwork: '',
+				guru: ''
+			}
 		};
 	}
 
 	componentDidMount() {
 		this.props.appStore.changeDocumentTitle(defaultTitle);
-		this.props.freelanceJobsStore.refreshJobs();
+
+		const disposer = autorun(() => {
+			const {freelanceJobsStore} = this.props;
+
+			if (!this.state.jobsRefresherId) {
+				if (freelanceJobsStore.rssStrings) {
+					freelanceJobsStore.refreshJobs();
+
+					this.setState({
+						rssStrings: freelanceJobsStore.rssStrings,
+						jobsRefresherId: setInterval(freelanceJobsStore.refreshJobs, intervals.jobsRefresher)
+					});
+				}
+			} else {
+				if (!freelanceJobsStore.rssStrings) {
+					this.setState({jobsRefresherId:clearInterval(this.state.jobsRefresherId)});
+				}
+			}
+
+			if (!this.state.titleBlinkerId) {
+				if (freelanceJobsStore.rssStrings) {
+					this.blinkTitle();
+
+					this.setState({
+						titleBlinkerId: setInterval(this.blinkTitle, intervals.titleBlinker)
+					});
+				}
+			}
+
+			//Check for if incoming feed has new jobs and beep.
+			if (freelanceJobsStore.jobs.length > 0 && freelanceJobsStore.jobs[0].guid !== this.state.lastBeepGuid) {
+				newItemNotification.play();
+				this.setState({lastBeepGuid: freelanceJobsStore.jobs[0].guid});
+			}
+		});
+
+		this.setState({
+			autorunDisposer: disposer
+		});
 	}
 
 	componentWillUnmount() {
-		clearInterval(this.state.jobsRefresherId);
-		clearInterval(this.state.titleBlinkerId);
-	}
+		this.clearAllIntervals();
 
-	componentDidUpdate() {
-		const {freelanceJobsStore} = this.props;
-
-		//Check for if incoming feed has new jobs and beep.
-		if (freelanceJobsStore.jobs.length > 0 && freelanceJobsStore.jobs[0].guid !== this.state.lastBeepGuid) {
-			newItemNotification.play();
-			this.setState({lastBeepGuid: freelanceJobsStore.jobs[0].guid});
-		}
+		//dispose the autorunner.
+		this.state.autorunDisposer();
 	}
 
 	render() {
@@ -62,10 +95,17 @@ class FreelanceJobBoard extends Component {
 				<Modal isOpen={this.state.rssStringModalOpen} toggle={this.hideRssStringsModal}>
 					<ModalHeader toggle={this.hideRssStringsModal}>Manage your RSS strings</ModalHeader>
 					<ModalBody>
-
+						<FormGroup>
+							<Label for="upworkRssString">Upwork</Label>
+							<Input id="upworkRssString" placeholder="Enter Upwork Rss String" value={this.state.rssStrings.upwork} onChange={this.changeTempNewUpworkRssString}/>
+						</FormGroup>
+						<FormGroup>
+							<Label for="guruRssString">Guru</Label>
+							<Input id="guruRssString" placeholder="Enter Guru Rss String" value={this.state.rssStrings.guru} onChange={this.changeTempNewGuruRssString}/>
+						</FormGroup>
 					</ModalBody>
 					<ModalFooter>
-						<Button className="btn-raised" color="primary" onClick={this.hideRssStringsModal}>OK</Button>
+						<Button className="btn-raised" color="primary" onClick={this.saveRssStringsHideModal}>OK</Button>
 					</ModalFooter>
 				</Modal>
 				<div className="card border-info text-center mt-4">
@@ -81,7 +121,7 @@ class FreelanceJobBoard extends Component {
 								<div className="row">
 									<div className="col">
 										<Button className="btn-raised" color="success" disabled={freelanceJobsStore.fetchingJobs} onClick={freelanceJobsStore.refreshJobs}>
-											<RefreshIcon className={classnames({"refresh-icon-anim": freelanceJobsStore.fetchingJobs})} fillColor="white"/>
+											<RefreshIcon className={classnames("icon", {"refresh-icon-anim": freelanceJobsStore.fetchingJobs})} fillColor="white"/>
 										</Button>
 									</div>
 									<div className="col">
@@ -129,7 +169,7 @@ class FreelanceJobBoard extends Component {
 											}
 
 											return <React.Fragment key={job.link}>
-												<tr onClick={() => {
+												<tr className={classnames({"bg-white text-dark":!job.unread})} onClick={() => {
 													freelanceJobsStore.toggleJobDetails(job.guid)
 												}}>
 													<th scope="row">
@@ -150,7 +190,8 @@ class FreelanceJobBoard extends Component {
 															"btn-info": !job.visible,
 															"btn-outline-info": job.visible
 														})}
-																onClick={() => {
+																onClick={(ev) => {
+																	ev.stopPropagation();
 																	freelanceJobsStore.toggleJobVisibility(job.guid)
 																}}>
 															{job.visible ? "Hide" : "Show"}
@@ -158,7 +199,7 @@ class FreelanceJobBoard extends Component {
 													</td>
 												</tr>
 												{job.showDetails &&
-												<tr>
+												<tr className={classnames({"bg-white text-dark":!job.unread})}>
 													<td colSpan={2}>
 														<a className="btn btn-success" href={job.link} target="_blank">Check on {job.platform}</a>
 													</td>
@@ -209,6 +250,46 @@ class FreelanceJobBoard extends Component {
 	 */
 	hideRssStringsModal = () => {
 		this.setState({rssStringModalOpen: false});
+	};
+
+	saveRssStringsHideModal = () => {
+		this.hideRssStringsModal();
+
+		this.props.freelanceJobsStore.setRssStrings(this.state.rssStrings);
+	};
+
+	/**
+	 * Remove all interval set by this component.
+	 */
+	clearAllIntervals = () => {
+		const newState = {...this.state};
+		if (this.state.jobsRefresherId) {
+			newState.jobsRefresherId = clearInterval(this.state.jobsRefresherId);
+		}
+
+		if (this.state.titleBlinkerId) {
+			newState.titleBlinkerId = clearInterval(this.state.titleBlinkerId);
+		}
+
+		this.setState(newState);
+	};
+
+	changeTempNewUpworkRssString = (ev) => {
+		this.setState({
+			rssStrings: {
+				...this.state.rssStrings,
+				upwork: ev.currentTarget.value
+			}
+		});
+	};
+
+	changeTempNewGuruRssString = (ev) => {
+		this.setState({
+			rssStrings: {
+				...this.state.rssStrings,
+				guru: ev.currentTarget.value
+			}
+		});
 	};
 }
 
