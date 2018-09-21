@@ -15,6 +15,10 @@ const hydrateJob = (job, platform) => {
 	job.visible = true;
 };
 
+/**
+ * MobX store for all the jobs loaded from RSS.
+ * @author nikolai.tenev@digidworks.com
+ */
 class FreelanceJobsStore {
 	@observable
 	showHidden;

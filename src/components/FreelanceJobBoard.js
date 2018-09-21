@@ -20,6 +20,7 @@ const defaultTitle = "Smart Notifier Job Board";
 
 /**
  * Simple jobs board, fetching jobs from upwork and guru.com
+ * @author nikolai.tenev@digidworks.com
  */
 @inject("freelanceJobsStore", "appStore")
 @observer

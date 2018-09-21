@@ -1,5 +1,7 @@
 {
   "name": "smart-notifier-frontend",
+  "author": "Nikolai Tenev <DigidWorks>",
+  "email": "nikolai.tenev@digidworks.com",
   "version": "0.1.0",
   "private": true,
   "dependencies": {

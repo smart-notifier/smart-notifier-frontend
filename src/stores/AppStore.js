@@ -2,6 +2,7 @@ import {action, observable} from "mobx";
 
 /**
  * Contains app-related logic only.
+ * @author nikolai.tenev@digidworks.com
  */
 class AppStore {
 	@observable
