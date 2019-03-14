@@ -1,5 +1,5 @@
 const intervals = {
-	jobsRefresher: 2*60*1000,
+	jobsRefresher: 2 * 60 * 1000,
 	titleBlinker: 2000,
 	waitBeforeDeletingErrorAlert: 2000
 };

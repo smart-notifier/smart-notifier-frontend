@@ -37,6 +37,11 @@ class FreelanceJobsStore {
 		this.jobs = [];
 	}
 
+	@computed
+	get unreadJobsCount() {
+		return this.jobs.reduce((acc, job) => (job.unread ? ++acc : acc), 0);
+	};
+
 	hydrate = async () => {
 		const rssStrings = await localforage.getItem("rssStrings");
 
@@ -122,11 +127,6 @@ class FreelanceJobsStore {
 		this.rssStrings = rssStrings;
 		localforage.setItem("rssStrings", rssStrings);
 	}
-
-	@computed
-	get unreadJobsCount() {
-		return this.jobs.reduce((acc, job) => (job.unread ? ++acc : acc), 0);
-	};
 }
 
 const freelanceJobsStore = new FreelanceJobsStore();

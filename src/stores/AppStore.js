@@ -14,14 +14,14 @@ class AppStore {
 	@observable
 	modals;
 
+	constructor() {
+		this.errors = [];
+	}
+
 	@action
 	changeDocumentTitle = (newTitle) => {
 		this.documentTitle = newTitle;
 	};
-
-	constructor() {
-		this.errors = [];
-	}
 
 	@action
 	addError = (message) => {

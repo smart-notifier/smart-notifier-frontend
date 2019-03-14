@@ -12,8 +12,8 @@ import localForage from "localforage";
 
 configure({enforceActions: "always"});
 localForage.config({
-	name:"Smart Notifier",
-	storeName:"smart_notifier_offline_store"
+	name: "Smart Notifier",
+	storeName: "smart_notifier_offline_store"
 });
 
 ReactDOM.render(

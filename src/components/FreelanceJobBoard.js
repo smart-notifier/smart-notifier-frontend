@@ -42,7 +42,7 @@ class FreelanceJobBoard extends Component {
 	componentDidMount() {
 		this.props.appStore.changeDocumentTitle(defaultTitle);
 
-		const disposer = autorun(() => {
+		const disposer = autorun(async () => {
 			const {freelanceJobsStore} = this.props;
 
 			if (!this.state.jobsRefresherId) {
@@ -56,7 +56,7 @@ class FreelanceJobBoard extends Component {
 				}
 			} else {
 				if (!freelanceJobsStore.rssStrings) {
-					this.setState({jobsRefresherId:clearInterval(this.state.jobsRefresherId)});
+					this.setState({jobsRefresherId: clearInterval(this.state.jobsRefresherId)});
 				}
 			}
 
@@ -72,8 +72,13 @@ class FreelanceJobBoard extends Component {
 
 			//Check for if incoming feed has new jobs and beep.
 			if (freelanceJobsStore.jobs.length > 0 && freelanceJobsStore.jobs[0].guid !== this.state.lastBeepGuid) {
-				newItemNotification.play();
-				this.setState({lastBeepGuid: freelanceJobsStore.jobs[0].guid});
+				try {
+					await newItemNotification.play();
+				} catch (e) {
+					console.error(e);
+				} finally {
+					this.setState({lastBeepGuid: freelanceJobsStore.jobs[0].guid});
+				}
 			}
 		});
 
@@ -170,7 +175,7 @@ class FreelanceJobBoard extends Component {
 											}
 
 											return <React.Fragment key={job.link}>
-												<tr className={classnames({"bg-white text-dark":!job.unread})} onClick={() => {
+												<tr className={classnames({"bg-white text-dark": !job.unread})} onClick={() => {
 													freelanceJobsStore.toggleJobDetails(job.guid)
 												}}>
 													<th scope="row">
@@ -200,9 +205,9 @@ class FreelanceJobBoard extends Component {
 													</td>
 												</tr>
 												{job.showDetails &&
-												<tr className={classnames({"bg-white text-dark":!job.unread})}>
+												<tr className={classnames({"bg-white text-dark": !job.unread})}>
 													<td colSpan={2}>
-														<a className="btn btn-success" href={job.link} target="_blank">Check on {job.platform}</a>
+														<a className="btn btn-success" href={job.link} target="_blank" rel="noopener noreferrer">Check on {job.platform}</a>
 													</td>
 													<td colSpan={3} dangerouslySetInnerHTML={{__html: job.description}}/>
 												</tr>
