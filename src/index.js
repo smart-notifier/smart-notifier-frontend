@@ -1,6 +1,5 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import registerServiceWorker from './registerServiceWorker';
 import Layout from "./layouts/Layout";
 import FreelanceJobBoard from "./components/FreelanceJobBoard";
 import {Provider} from "mobx-react";
@@ -22,5 +21,3 @@ ReactDOM.render(
 			<FreelanceJobBoard/>
 		</Layout>
 	</Provider>, document.getElementById('root'));
-
-registerServiceWorker();

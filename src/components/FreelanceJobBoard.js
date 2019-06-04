@@ -41,10 +41,9 @@ class FreelanceJobBoard extends Component {
 
 	componentDidMount() {
 		this.props.appStore.changeDocumentTitle(defaultTitle);
+		const {freelanceJobsStore} = this.props;
 
 		const disposer = autorun(async () => {
-			const {freelanceJobsStore} = this.props;
-
 			if (!this.state.jobsRefresherId) {
 				if (freelanceJobsStore.rssStrings) {
 					freelanceJobsStore.refreshJobs();

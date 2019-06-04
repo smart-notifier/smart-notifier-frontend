@@ -1,38 +1,42 @@
 {
-  "name": "smart-notifier-frontend",
-  "author": "Nikolai Tenev <DigidWorks>",
-  "email": "nikolai.tenev@digidworks.com",
-  "version": "0.1.0",
-  "private": true,
-  "dependencies": {
-	"axios": "^0.18.0",
-	"classnames": "^2.2.6",
-	"localforage": "^1.7.3",
-	"lodash": "^4.17.11",
-	"mobx": "^5.9.0",
-	"mobx-react": "^5.4.3",
-	"prop-types": "^15.7.2",
-	"react": "^16.8.4",
-	"react-dom": "^16.8.4",
-	"react-helmet": "^5.2.0",
-	"react-scripts": "2.1.8",
-	"reactstrap": "^7.1.0"
-  },
-  "scripts": {
-	"start": "react-app-rewired start",
-	"build": "react-app-rewired build",
-	"test": "react-app-rewired test --env=jsdom",
-	"eject": "react-scripts eject"
-  },
-  "devDependencies": {
-	"@babel/plugin-proposal-decorators": "^7.3.0",
-	"customize-cra": "^0.2.12",
-	"react-app-rewired": "^2.1.1"
-  },
-  "browserslist": [
-	">0.2%",
-	"not dead",
-	"not ie <= 11",
-	"not op_mini all"
-  ]
+	"name": "smart-notifier-frontend",
+	"author": "Nikolai Tenev <DigidWorks>",
+	"email": "nikolai.tenev@digidworks.com",
+	"version": "0.1.0",
+	"private": true,
+	"license": "SEE LICENSE IN LICENSE",
+	"dependencies": {
+		"axios": "^0.19.0",
+		"classnames": "^2.2.6",
+		"localforage": "^1.7.3",
+		"lodash": "^4.17.11",
+		"mobx": "^5.10.0",
+		"mobx-react": "^6.0.3",
+		"prop-types": "^15.7.2",
+		"react": "^16.8.6",
+		"react-dom": "^16.8.6",
+		"react-helmet": "^5.2.1",
+		"reactstrap": "^8.0.0",
+		"react-hot-loader": "^4.9.0"
+	},
+	"main": "index.js",
+	"scripts": {
+		"start": "webpack-dev-server --mode development --open",
+		"build": "webpack --mode production"
+	},
+	"devDependencies": {
+		"@babel/plugin-proposal-class-properties": "^7.4.4",
+		"@babel/plugin-proposal-decorators": "^7.4.4",
+		"@babel/plugin-transform-classes": "^7.4.4",
+		"@babel/plugin-transform-regenerator": "^7.4.5",
+		"@babel/plugin-transform-runtime": "^7.4.4",
+		"@neutrinojs/compile-loader": "^9.0.0-rc.3",
+		"@neutrinojs/react": "^9.0.0-rc.3",
+		"babel-merge": "^3.0.0",
+		"copy-webpack-plugin": "^5.0.3",
+		"neutrino": "^9.0.0-rc.3",
+		"webpack": "^4.32.2",
+		"webpack-cli": "^3.3.2",
+		"webpack-dev-server": "^3.5.1"
+	}
 }

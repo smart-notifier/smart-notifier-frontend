@@ -87,7 +87,7 @@ class FreelanceJobsStore {
 			const rssRequests = new Map();
 
 			each(this.rssStrings, (val, key) => {
-				rssRequests.set(key, axios.get(`${process.env.REACT_APP_API_URL}feeds/rss/${key}/${val}`));
+				rssRequests.set(key, axios.get(`/api/feeds/rss/${key}/${val}`));
 			});
 
 			const resolvedRssRequests = await Promise.all(rssRequests.values());
