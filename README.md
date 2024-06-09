@@ -4,6 +4,6 @@ This repo contains the front-end files for a very simple web app/tool, that aggr
 
 You can do what ever you want with it.
 
-This project is developed by a [small software development agency](https://digidworks.com/).
+This project is developed by a [small software development agency called DigidWorks](https://digidworks.com/).
 
-More [info on the project](https://digidworks.com/post/4).
+More [info on the project](https://digidworks.com/the-beginning-of-the-smart-notifier).
